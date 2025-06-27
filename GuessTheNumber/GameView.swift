@@ -280,8 +280,6 @@ struct GameView: View {
                 .animation(.easeInOut(duration: 0.5), value: viewModel.isGameWon)
                 .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewModel.showCelebration)
             }
-            .navigationTitle("🎯 Devine le nombre")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -396,7 +394,7 @@ struct ScoreView: View {
                 )
                 .ignoresSafeArea()
                 
-                VStack {
+                VStack(spacing: 0) {
                     if scores.isEmpty {
                         // État vide avec illustration
                         VStack(spacing: 20) {
@@ -414,13 +412,16 @@ struct ScoreView: View {
                                 .multilineTextAlignment(.center)
                         }
                         .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        // En-tête explicatif
-                        VStack(spacing: 8) {
+                        // En-tête explicatif - CORRIGÉ
+                        VStack(spacing: 12) {
                             HStack {
-                                Text("Top 10 des Meilleurs Scores")
+                                Text("🏆 Top 10 des Meilleurs Scores")
                                     .font(.headline)
                                     .fontWeight(.bold)
+                                
+                                Spacer()
                                 
                                 Button {
                                     showingScoreInfo = true
@@ -431,18 +432,35 @@ struct ScoreView: View {
                                 }
                             }
                             
-                            Text("Score = Efficacité (moins de tentatives + moins de temps = mieux)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
+                            // Explication plus claire et visible
+                            VStack(spacing: 4) {
+                                Text("Score basé sur l'efficacité")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                                
+                                Text("Moins de tentatives + Moins de temps = Meilleur score")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(.ultraThinMaterial)
+                            )
                         }
-                        .padding()
+                        .padding(.horizontal)
+                        .padding(.top, 8)
                         
+                        // Liste des scores
                         List {
                             ForEach(Array(scores.enumerated()), id: \.element.id) { index, score in
                                 ScoreRowView(score: score, rank: index + 1)
                                     .listRowBackground(Color.clear)
                                     .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                             }
                         }
                         .listStyle(.plain)
@@ -450,19 +468,43 @@ struct ScoreView: View {
                     }
                 }
             }
-            .navigationTitle("🏆 Tableau des scores")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("")
+            .navigationBarHidden(true)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") {
-                        isPresented = false
+                // Toolbar personnalisée en haut
+                ToolbarItem(placement: .principal) {
+                    HStack {
+                        Button("Fermer") {
+                            isPresented = false
+                        }
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                        
+                        Spacer()
+                        
+                        Text("Tableau des Scores")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                        
+                        Spacer()
+                        
+                        // Bouton invisible pour équilibrer
+                        Button("") { }
+                            .disabled(true)
+                            .opacity(0)
                     }
-                    .fontWeight(.semibold)
                 }
             }
-            .popover(isPresented: $showingScoreInfo, arrowEdge: .bottom) {
-                ScoreInfoView()
-                    .presentationCompactAdaptation(.popover)
+            .alert("Comment ça marche ?", isPresented: $showingScoreInfo) {
+                Button("Compris", role: .cancel) { }
+            } message: {
+                Text("""
+                Le score récompense l'efficacité : moins de tentatives et moins de temps donnent un meilleur score (maximum 50 points).
+                
+                En cas d'égalité, priorité au nombre de tentatives, puis au temps. La stratégie prime sur la vitesse.
+                
+                💡 Réfléchissez avant de deviner !
+                """)
             }
         }
     }
@@ -481,7 +523,6 @@ struct ScoreRowView: View {
         }
     }
     
-    // Correction : badge cohérent, tous en version "fill"
     private var rankIcon: String {
         switch rank {
         case 1: return "crown.fill"
@@ -575,8 +616,10 @@ struct GameView_Previews: PreviewProvider {
     }
 }
 
-// MARK: - Vue d'information corrigée avec scroll et navigation
-struct ScoreInfoView: View {
+// MARK: - Vue d'information moderne avec popover
+struct ScoreInfoDetailView: View {
+    @Binding var isPresented: Bool
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -584,138 +627,99 @@ struct ScoreInfoView: View {
                     // En-tête avec icône explicative
                     HStack {
                         Image(systemName: "chart.bar.fill")
-                            .font(.title2)
+                            .font(.title)
                             .foregroundColor(.blue)
-                        Text("Comment ça marche ?")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                        VStack(alignment: .leading) {
+                            Text("Comment fonctionne le score ?")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            Text("Système de classement intelligent")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
                     }
-                    
-                    Divider()
+                    .padding()
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                     
                     // Explication du scoring principal
                     VStack(alignment: .leading, spacing: 12) {
                         Label("Calcul du Score", systemImage: "function")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            .font(.headline)
+                            .fontWeight(.semibold)
                             .foregroundColor(.primary)
                         
-                        Text("Le score récompense l'efficacité : moins de tentatives et moins de temps donnent un meilleur score (maximum 50 points).")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        Text("Le score récompense l'efficacité selon cette formule :")
+                            .font(.subheadline)
                         
-                        // Formule explicative avec style code
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Formule utilisée :")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            
                             Text("Score = (1000 ÷ tentatives) + (300 ÷ temps)")
-                                .font(.caption)
-                                .fontFamily(.monospaced)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(6)
+                                .font(.system(.body, design: .monospaced))
+                                .padding()
+                                .background(.gray.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                            
+                            Text("• Maximum théorique : 50 points")
+                            Text("• Minimum garanti : 1 point")
+                            Text("• Équilibre entre vitesse et précision")
                         }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     }
+                    .padding()
+                    .background(.blue.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
                     
                     // Explication du départage
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("En cas d'égalité", systemImage: "scale.3d")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                        Label("Système de départage", systemImage: "scale.3d")
+                            .font(.headline)
+                            .fontWeight(.semibold)
                             .foregroundColor(.orange)
                         
-                        Text("Priorité donnée au nombre de tentatives, puis au temps. La stratégie prime sur la vitesse.")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    
-                    // Section exemples pratiques
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("Exemples de scores", systemImage: "star.fill")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.yellow)
-                        
-                        VStack(spacing: 8) {
-                            ExampleScoreRow(attempts: 1, time: "3s", score: "50.0", description: "Score parfait")
-                            ExampleScoreRow(attempts: 2, time: "10s", score: "30.0", description: "Excellent")
-                            ExampleScoreRow(attempts: 5, time: "30s", score: "10.0", description: "Bon")
-                            ExampleScoreRow(attempts: 10, time: "60s", score: "5.0", description: "Correct")
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("En cas de score identique :")
+                            Text("1️⃣ Celui avec moins de tentatives gagne")
+                            Text("2️⃣ Si égalité, celui avec moins de temps gagne")
+                            Text("3️⃣ La stratégie prime sur la rapidité")
                         }
-                    }
-                    
-                    // Astuce gameplay
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "lightbulb.fill")
-                                .font(.title3)
-                                .foregroundColor(.yellow)
-                            Text("Stratégie gagnante")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-                        
-                        Text("Utilisez la recherche binaire ! Commencez par 50, puis 25 ou 75 selon la réponse, et ainsi de suite. Vous trouverez n'importe quel nombre en maximum 7 tentatives.")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     }
                     .padding()
-                    .background(Color.yellow.opacity(0.1))
-                    .cornerRadius(12)
+                    .background(.orange.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+                    
+                    // Conseils de jeu
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Conseils pour un meilleur score", systemImage: "lightbulb.fill")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.yellow)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("🎯 Utilisez la dichotomie (50 → 25/75 → etc.)")
+                            Text("🧠 Réfléchissez avant chaque proposition")
+                            Text("⚡ Soyez rapide mais précis")
+                            Text("📊 Visez 6-7 tentatives maximum")
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .background(.yellow.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
                     
                     Spacer(minLength: 20)
                 }
-                .padding(20)
+                .padding()
             }
-            .navigationTitle("Système de Score")
+            .navigationTitle("Guide du Score")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fermer") {
-                        // Cette action sera gérée par le parent
+                        isPresented = false
                     }
                     .fontWeight(.semibold)
                 }
             }
         }
-    }
-}
-
-// MARK: - Composant exemple de score
-struct ExampleScoreRow: View {
-    let attempts: Int
-    let time: String
-    let score: String
-    let description: String
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(attempts) tentatives • \(time)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                
-                Text(description)
-                    .font(.caption2)
-                    .foregroundColor(.blue)
-            }
-            
-            Spacer()
-            
-            Text(score)
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.green)
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(Color.gray.opacity(0.05))
-        .cornerRadius(6)
     }
 }
